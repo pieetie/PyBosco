@@ -1,6 +1,6 @@
 # PyConwayKernel
 A cellular automata code featuring the Bosco pattern
-![[Figure_1.png]]
+![Figure 1](Figure_1.png)
 
 ## Requirements
 Before launching the project, you must install the necessary dependencies.
