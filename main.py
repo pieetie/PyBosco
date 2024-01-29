@@ -4,19 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import scipy.signal
 
-N = 50 #taille de la grille (size)
-x, y = 20, 20 #position du motif au départ (pattern position)
-ON = 1
-OFF = 0
-
-PAUSE = False #contrôle de la pause
-
-def on_key_press(event):
-    global PAUSE
-    if event.key == 'p':
-        PAUSE = not PAUSE
-
-#motifs (patterns)
+#motif de bosco (bosco pattern)
 pattern = {}
 pattern["bosco"] = {"name":"Bosco","R":5,"b1":34,"b2":45,"s1":34,"s2":58,
   "cells":[[0,0,0,1,1,1,0,0,0,0], 
@@ -31,6 +19,21 @@ pattern["bosco"] = {"name":"Bosco","R":5,"b1":34,"b2":45,"s1":34,"s2":58,
            [0,0,1,1,1,1,1,0,0,0], 
            [0,0,0,1,1,1,0,0,0,0]]
 }
+
+N = 50 #taille de la grille (size)
+x, y = 20, 20 #position du motif au départ (pattern position)
+ON = 1
+OFF = 0
+
+R = pattern["bosco"]["R"]
+K = np.ones((2*R+1, 2*R+1))
+
+PAUSE = False #contrôle de la pause
+
+def on_key_press(event):
+    global PAUSE
+    if event.key == 'p':
+        PAUSE = not PAUSE
 
 def add_color(grid):
     '''
@@ -47,17 +50,13 @@ def main():
     Fonction principale (main function)
     '''
     global PAUSE
-    grid = np.zeros((N, N), dtype=int) #initialisation de la grille (grid initialization)
-    params = pattern["bosco"] #paramètres du motif (pattern parameters)
-    globals().update(params)
-
-    C = np.asarray(params['cells'])
-    grid[x:x+C.shape[0], y:y+C.shape[1]] = C
+    params = pattern["bosco"]
+    
+    grid = np.zeros((N, N), dtype=int)
+    grid[x:x+len(pattern["bosco"]["cells"]), y:y+len(pattern["bosco"]["cells"][0])] = pattern["bosco"]["cells"]
 
     # Appliquer la couleur dès le début
     colored_grid = add_color(grid)
-
-    K = np.ones((2*params['R']+1, 2*params['R']+1)) #noyau (kernel)
 
     #animation
     fig, ax = plt.subplots()
