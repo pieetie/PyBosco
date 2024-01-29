@@ -2,9 +2,11 @@
 import numpy as np
 import matplotlib.pyplot as plt 
 import matplotlib.animation as animation
+import scipy.signal
 
-N = 100 #taille de la grille (size)
-ON = 255
+N = 50 #taille de la grille (size)
+x, y = 20, 20 #position du motif au départ (pattern position)
+ON = 1
 OFF = 0
 
 PAUSE = False #contrôle de la pause
@@ -13,6 +15,22 @@ def on_key_press(event):
     global PAUSE
     if event.key == 'p':
         PAUSE = not PAUSE
+
+#motifs (patterns)
+pattern = {}
+pattern["bosco"] = {"name":"Bosco","R":5,"b1":34,"b2":45,"s1":34,"s2":58,
+  "cells":[[0,0,0,1,1,1,0,0,0,0], 
+           [0,0,1,1,1,1,1,1,0,0], 
+           [0,1,0,0,1,1,1,1,1,1], 
+           [1,0,0,0,0,1,1,1,1,1], 
+           [1,0,0,0,0,0,1,1,1,1], 
+           [1,1,0,0,0,0,1,1,1,1], 
+           [1,1,1,1,0,1,1,1,1,1], 
+           [1,1,1,1,1,1,1,1,1,0], 
+           [0,1,1,1,1,1,1,1,0,0], 
+           [0,0,1,1,1,1,1,0,0,0], 
+           [0,0,0,1,1,1,0,0,0,0]]
+}
 
 def add_color(grid):
     '''
@@ -24,53 +42,54 @@ def add_color(grid):
     color_grid[grid == OFF] = np.array([253, 253, 254])
     return color_grid
 
-def update(frameNum, img, grid, N):
-    '''
-    Fonction update (update function)
-    '''
-    global PAUSE
-    if PAUSE:
-        return img,
-    nouvGrid = grid.copy()
-    for a in range(N):
-        for b in range(N):
-            total = int((grid[a,(b-1)%N]+grid[a,(b+1)%N]+grid[(a-1)%N,b]+grid[(a+1)%N,b]+grid[(a-1)%N,(b-1)%N]+grid[(a-1)%N,(b+1)%N]+grid[(a+1)%N,(b-1)%N]+grid[(a+1)%N,(b+1)%N])/255)
-            if grid[a, b]  == ON:
-                if (total < 2) or (total > 3):
-                    nouvGrid[a,b] = OFF
-            else:
-                if total == 3:
-                    nouvGrid[a,b] = ON
-
-    img.set_data(add_color(nouvGrid))
-    grid[:] = nouvGrid[:]
-    return img,
-
 def main():
     '''
     Fonction principale (main function)
     '''
     global PAUSE
-    vals = [ON, OFF]
-    grid = np.random.choice(vals, N*N, p=[0.2, 0.8]).reshape(N,N) #génération de départ aleatoire (random generation)
+    grid = np.zeros((N, N), dtype=int) #initialisation de la grille (grid initialization)
+    params = pattern["bosco"] #paramètres du motif (pattern parameters)
+    globals().update(params)
+
+    C = np.asarray(params['cells'])
+    grid[x:x+C.shape[0], y:y+C.shape[1]] = C
+
+    # Appliquer la couleur dès le début
+    colored_grid = add_color(grid)
+
+    K = np.ones((2*params['R']+1, 2*params['R']+1)) #noyau (kernel)
 
     #animation
     fig, ax = plt.subplots()
 
-    #enlever les axes (remove axes) - visuellement (visually)
-    #ax.axis('off')
-    #ax.set_xticks([])
-    #ax.set_yticks([])
+    img = ax.imshow(colored_grid, interpolation='nearest', cmap='binary')
 
-    img = ax.imshow(add_color(grid), interpolation='nearest')
+    def growth(U):
+        '''
+        Règle de croissance (growth rule)
+        '''
+        return 0 + ((U >= params['b1']) & (U <= params['b2'])) - ((U < params['s1']) | (U > params['s2']))
 
-    ani = animation.FuncAnimation(fig,update,fargs=(img,grid,N,),frames= 10,interval= 60)
+    def update(i):
+        '''
+        Mise à jour de la grille (grid update)
+        '''
+        nonlocal grid
+        if PAUSE:
+            return img, 
+        U = scipy.signal.convolve2d(grid, K, mode='same', boundary='wrap')
+        grid = np.clip(grid + growth(U), 0, 1).astype(int)
+        colored_grid = add_color(grid)
+        img.set_array(colored_grid)
+        return img,
+
+    ani = animation.FuncAnimation(fig, update, frames=200, interval=50)
 
     #pause/play
     fig.canvas.mpl_connect('key_press_event', on_key_press)
 
     plt.show()
     return ani
-  
+
 if __name__ == "__main__":
     main()
